@@ -18,6 +18,7 @@ from scipy.signal import savgol_filter
 from scipy.signal import cont2discrete
 from scipy.linalg import eigvals
 import copy
+import itertools
 
 import matplotlib.pyplot as plt
 
@@ -57,7 +58,7 @@ class DFL():
         self.dt_data = dt_data 
         self.dt_control = dt_control
 
-    def train_model(self, model, x, y, title=None):
+    def train_model(self, model, x, y, title=None, opt='all'):
         # Reshape x and y to be vector of tensors
         x = torch.transpose(x,0,1)
         y = torch.transpose(y,0,1)
@@ -80,7 +81,11 @@ class DFL():
         n_epochs = 100000
         training_losses = []
         validation_losses = []
-        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+        # breakpoint()
+        if opt is 'all':
+            optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+        else:
+            optimizer = torch.optim.Adam(itertools.chain(model.A.parameters(), model.H.parameters()), lr=learning_rate)
 
         for t in range(n_epochs):
             batch_losses = []
@@ -244,6 +249,13 @@ class DFL():
         
         self.A_disc_koop = G[: , :self.Y_plus.shape[-1]] 
         self.B_disc_koop = G[: , self.Y_plus.shape[-1]:]
+
+    def regress_New_Linear_Model(self):
+        x_minus = torch.transpose(torch.from_numpy(self.X_minus.reshape(-1, self.X_minus.shape[-1])).type(dtype), 0,1)
+        u_minus = torch.transpose(torch.from_numpy(self.U_minus.reshape(-1, self.U_minus.shape[-1])).type(dtype), 0,1)
+        x_plus  = torch.transpose(torch.from_numpy(self.X_plus .reshape(-1, self.X_plus .shape[-1])).type(dtype), 0,1)
+
+        self.model = self.train_model(self.model, torch.cat((x_minus, u_minus), 0), x_plus, opt='lin')
 
     def generate_sid_model(self,xi_order):
 
