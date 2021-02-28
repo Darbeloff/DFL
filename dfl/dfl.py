@@ -35,7 +35,7 @@ torch.manual_seed(seed)
 np.random.seed(seed = seed)
 
 RETRAIN = True
-RETRAIN = False
+# RETRAIN = False
 
 def step(x_batch, y_batch, model, loss_fn):
     # Send data to GPU if applicable
