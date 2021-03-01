@@ -3,6 +3,7 @@ import torch
 from torch.utils.data import Dataset, TensorDataset, DataLoader
 from torch.utils.data.dataset import random_split
 from torch.autograd import Variable
+import copy
 
 class LearnedDFL(torch.nn.Module):
     def __init__(self, D_x, D_eta, D_u, H):
@@ -37,10 +38,9 @@ class LearnedDFL(torch.nn.Module):
 
     def lstsqAH(self, x_t, x_tm1, u_tm1):
         eta_tm1 = self.g(x_tm1)
-
+        eta_t   = self.g(x_t  )
+        
         xi_tm1 = torch.cat((x_tm1,eta_tm1,u_tm1), 1)
-
-        eta_t = self.g(x_t)
 
         A = torch.lstsq(  x_t,xi_tm1).solution[:5]
         H = torch.lstsq(eta_t,xi_tm1).solution[:5]
@@ -50,3 +50,6 @@ class LearnedDFL(torch.nn.Module):
                 self.A.weight[j,i] = A[i,j].item()
             for j in range(len(H[0])):
                 self.H.weight[j,i] = H[i,j].item()
+
+        self.A = copy.deepcopy(self.A)
+        self.H = copy.deepcopy(self.H)

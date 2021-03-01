@@ -35,7 +35,7 @@ torch.manual_seed(seed)
 np.random.seed(seed = seed)
 
 RETRAIN = True
-# RETRAIN = False
+RETRAIN = False
 
 def step(x_batch, y_batch, model, loss_fn):
     # Send data to GPU if applicable
@@ -68,8 +68,8 @@ class DFL():
         N_train = int(3*len(y)/5)
         train_dataset, val_dataset = random_split(dataset, [N_train,len(y)-N_train])
 
-        train_loader = DataLoader(dataset=train_dataset, batch_size=50)
-        val_loader   = DataLoader(dataset=val_dataset  , batch_size=50)
+        train_loader = DataLoader(dataset=train_dataset, batch_size=5000)
+        val_loader   = DataLoader(dataset=val_dataset  , batch_size=5000)
 
         loss_fn = torch.nn.MSELoss(reduction='sum')
 
@@ -85,6 +85,7 @@ class DFL():
         if opt is 'all':
             optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
         else:
+            # optimizer = torch.optim.Adam(model.A.parameters(), lr=learning_rate)
             optimizer = torch.optim.Adam(itertools.chain(model.A.parameters(), model.H.parameters()), lr=learning_rate)
 
         for t in range(n_epochs):
@@ -255,7 +256,9 @@ class DFL():
         u_minus = torch.transpose(torch.from_numpy(self.U_minus.reshape(-1, self.U_minus.shape[-1])).type(dtype), 0,1)
         x_plus  = torch.transpose(torch.from_numpy(self.X_plus .reshape(-1, self.X_plus .shape[-1])).type(dtype), 0,1)
 
+        self.model.train()
         self.model = self.train_model(self.model, torch.cat((x_minus, u_minus), 0), x_plus, opt='lin')
+        torch.save(self.model.state_dict(), 'model.pt')
 
     def generate_sid_model(self,xi_order):
 
