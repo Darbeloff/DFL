@@ -203,6 +203,7 @@ if __name__== "__main__":
     setattr(plant1, "g", Plant1.g)
 
     dfl1.generate_data_from_random_trajectories( t_range_data = 5.0, n_traj_data = 100 )
+    dfl1.clean_anticausal_eta()
     dfl1.generate_DFL_disc_model()
     dfl1.regress_K_matrix()
 
@@ -216,12 +217,24 @@ if __name__== "__main__":
     np.random.seed(seed = seed)
     t, u_dfl, x_dfl, y_dfl = dfl1.simulate_system_dfl(x_0, sin_u_func, 10.0,continuous = False)
     # t, u_koop, x_koop, y_koop = dfl1.simulate_system_koop(x_0, sin_u_func, 10.0)
+
+    # np.savez('unfiltered.npz',
+    #     t=t,
+    #     u=u_dfl,
+    #     x=x_dfl,
+    #     y=y_dfl
+    #     )
+    data = np.load('unfiltered.npz')
+    t_unf = data['t']
+    x_unf = data['x']
+    y_unf = data['y']
+    u_unf = data['u']
     
     fig, axs = plt.subplots(2, 1)
 
     axs[0].plot(t, y_nonlin[:,0], 'k', label='True')
     axs[0].plot(t, y_dfl[:,0] ,'b-.', label='DFL')
-    # axs[0].plot(t, y_koop[:,0] ,'r--', label='Koopman')
+    axs[0].plot(t, y_unf[:,0] ,'r--', label='DFL (unf)')
     axs[0].legend()
 
     axs[1].plot(t, u_nonlin,'k')

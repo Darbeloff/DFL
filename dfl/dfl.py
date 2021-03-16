@@ -109,6 +109,29 @@ class DFL():
         self.A_disc_koop = G[: , :self.Y_plus.shape[-1]] 
         self.B_disc_koop = G[: , self.Y_plus.shape[-1]:]
 
+    def copy_into_minus_plus(data):
+        minus = np.copy(data[:, :-1,:])
+        plus  = np.copy(data[:,1:  ,:])
+        return minus, plus
+
+    def clean_anticausal_eta(self):
+        u   = self.  u_data.reshape(-1,self.  u_data.shape[-1]).T
+        eta = self.eta_data.reshape(-1,self.eta_data.shape[-1]).T
+        self.D = np.linalg.lstsq(np.matmul(u,u.T),np.matmul(u,eta.T),rcond=None)[0].T
+
+        eta_data_shape = self.eta_data.shape
+        self.eta_data = self.eta_data.reshape(-1, self.eta_data.shape[-1]).T
+        self.eta_data = self.eta_data-np.matmul(self.D, u)
+        self.eta_data = self.eta_data.T.reshape(eta_data_shape)
+
+        for i in range(eta_data_shape[0]):
+            eta_array = self.eta_data[i]
+            self.eta_dot_data[i] = savgol_filter(eta_array,
+                                                 window_length = 5, polyorder = 3,
+                                                 deriv = 1, axis=0)/self.dt_data
+
+        self.Eta_minus, self.Eta_plus = DFL.copy_into_minus_plus(self.eta_dot_data)
+
     def generate_sid_model(self,xi_order):
 
         U = self.U_minus.reshape(-1, self.U_minus.shape[-1]).T
