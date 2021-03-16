@@ -217,24 +217,18 @@ if __name__== "__main__":
     t, u_dfl, x_dfl, y_dfl = dfl1.simulate_system_dfl(x_0, sin_u_func, 10.0,continuous = False)
     # t, u_koop, x_koop, y_koop = dfl1.simulate_system_koop(x_0, sin_u_func, 10.0)
     
-    fig, axs = plt.subplots(3, 1)
+    fig, axs = plt.subplots(2, 1)
 
-    axs[0].plot(t, y_nonlin[:,0], 'b')
-    axs[0].plot(t, y_dfl[:,0] ,'b-.')
-    # axs[0].plot(t, y_koop[:,0] ,'b--')
+    axs[0].plot(t, y_nonlin[:,0], 'k', label='True')
+    axs[0].plot(t, y_dfl[:,0] ,'b-.', label='DFL')
+    # axs[0].plot(t, y_koop[:,0] ,'r--', label='Koopman')
+    axs[0].legend()
 
-    # axs[1].plot(t, y_nonlin[:,1],'r')
-    # axs[1].plot(t, y_dfl[:,1],'r-.')
-    # axs[1].plot(t, y_koop[:,1] ,'r--')
-  
-    axs[2].plot(t, u_nonlin,'g')
-    axs[2].plot(t, u_dfl,'r-.')
-    # axs[2].plot(t, u_koop,'b--')
+    axs[1].plot(t, u_nonlin,'k')
 
-    axs[2].set_xlabel('time')
+    axs[1].set_xlabel('time')
     
     axs[0].set_ylabel('x')
-    axs[1].set_ylabel('v')
-    axs[2].set_ylabel('u')
+    axs[1].set_ylabel('u')
 
     plt.show()
