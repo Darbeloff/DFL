@@ -226,5 +226,9 @@ if __name__== "__main__":
                     bottom=False,
                     labelleft=False,
                     labelbottom=False)
+    axs0.set_zlabel('Fs')
+    axs1.set_zlabel('Fd')
+    axs2.set_zlabel('e1')
+    axs3.set_zlabel('e2')
     plt.subplots_adjust(wspace=0, hspace=0)
     plt.show()
