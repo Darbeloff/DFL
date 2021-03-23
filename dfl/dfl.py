@@ -132,6 +132,8 @@ class DFL():
 
         self.Eta_minus, self.Eta_plus = DFL.copy_into_minus_plus(self.eta_dot_data)
 
+        self.plant.B_cont_x+= np.matmul(self.plant.A_cont_eta, self.D)
+
     def generate_sid_model(self,xi_order):
 
         U = self.U_minus.reshape(-1, self.U_minus.shape[-1]).T
