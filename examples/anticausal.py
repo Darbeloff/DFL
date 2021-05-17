@@ -84,7 +84,7 @@ if __name__== "__main__":
     t, u, x_tru, y_tru = tru.simulate_system(x_0, driving_fun, 10.0)
     axs.plot(t, u, 'gainsboro')
     axs.text(9.7, -0.43, 'u', fontsize='xx-large', color='tab:gray', fontstyle='italic')
-    axs.plot(t, x_tru[:,0], 'k-', label='Ground Truth')
+    axs.plot(t, x_tru[:,0], 'k-', label='Gnd. Truth')
 
     koo = dm.Koopman(plant1, observable='polynomial')
     koo.learn(data)
@@ -92,11 +92,13 @@ if __name__== "__main__":
     axs.plot(t, x_koo[:,0], 'g-.', label='Koopman')
     print('Koopman Error: {}'.format(int_abs_error(x_koo[:,0],x_tru[:,0])))
 
-    dmd = dm.DFL(plant1, ac_filter=False)
-    dmd.learn(data)
+    dmd = dm.Koopman(plant1, observable='polynomial', n_koop=5)
+    dmd.learn(data, dmd=True)
+    # dmd = dm.DFL(plant1, ac_filter=False)
+    # dmd.learn(data)
     _, _, x_dmd, y_dmd = dmd.simulate_system(x_0, driving_fun, 10.0)
-    axs.plot(t, x_dmd[:,0], 'c-.', label='DMDc')
-    print('DMDc Error: {}'.format(int_abs_error(x_dmd[:,0],x_tru[:,0])))
+    axs.plot(t, x_dmd[:,0], 'c-.', label='eDMDc')
+    print('eDMDc Error: {}'.format(int_abs_error(x_dmd[:,0],x_tru[:,0])))
 
     dfl = dm.DFL(plant1, ac_filter=True)
     dfl.learn(data)
@@ -116,11 +118,12 @@ if __name__== "__main__":
     axs.plot(t, x_lnf[:,0], 'm-.', label='L3 (NoF)')
     print('L3 (NoF) Error: {}'.format(int_abs_error(x_lnf[:,0],x_tru[:,0])))
 
-    bb = (fig.subplotpars.left, fig.subplotpars.top+0.02, fig.subplotpars.right-fig.subplotpars.left, .1)
-    axs.legend(bbox_to_anchor=bb, loc='lower left', ncol=6, mode="expand", borderaxespad=0., bbox_transform=fig.transFigure)
+    # bb = (fig.subplotpars.left, fig.subplotpars.top+0.02, fig.subplotpars.right-fig.subplotpars.left, .1)
+    # axs.legend(bbox_to_anchor=bb, loc='lower left', ncol=3, mode="expand", borderaxespad=0., bbox_transform=fig.transFigure)
 
+    axs.legend(ncol=3, loc='upper center')
     axs.set_xlabel('time (s)')
     axs.set_ylabel('q (m)')
-    fig.subplots_adjust(bottom=0.2)
-
+    axs.set_ylim(-0.7, 1.2)
+    
     plt.show()
