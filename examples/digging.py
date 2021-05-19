@@ -200,7 +200,7 @@ def main(test_ndx):
     axs[1,1].plot(t, x_lnf[:,7], 'm-.')
     axs[1,2].plot(t, x_lnf[:,8], 'm-.')
 
-    lnz = dm.L3(plant1, 4, dt_data=dt_data, dt_control=dt_control, ac_filter='none', retrain=True, model_fn='model_dig_noz', ignore_zeta=True, hidden_units_per_layer=64)
+    lnz = dm.L3(plant1, 4, dt_data=dt_data, dt_control=dt_control, ac_filter='none', retrain=False, model_fn='model_dig_noz', ignore_zeta=True, hidden_units_per_layer=64)
     start_time = time.time()
     lnz.learn(data)
     print('L3 NoZ: {}'.format(time.time()-start_time))
