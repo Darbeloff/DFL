@@ -140,7 +140,7 @@ def main(test_ndx):
     plant1 = Plant1()
     fig, axs = plt.subplots(2,3)
 
-    data, test_data = Plant1.generate_data_from_file('data_nick_not_flat.npz', test_ndx=test_ndx, truncate=0.75)
+    data, test_data = Plant1.generate_data_from_file('data_nick_not_flat.npz', test_ndx=test_ndx)
     driving_fun = test_data['u']
     t = test_data['t']
     dt_data = t[1]-t[0]
@@ -176,7 +176,7 @@ def main(test_ndx):
     axs[1,1].plot(t, x_dmd[:,7], 'r-.')
     axs[1,2].plot(t, x_dmd[:,8], 'r-.')
 
-    lrn = dm.L3(plant1, 4, dt_data=dt_data, dt_control=dt_control, ac_filter='linear', retrain=True, model_fn='model_dig', hidden_units_per_layer=64)
+    lrn = dm.L3(plant1, 4, dt_data=dt_data, dt_control=dt_control, ac_filter='linear', retrain=False, model_fn='model_dig', hidden_units_per_layer=64)
     start_time = time.time()
     lrn.learn(data)
     print('L3: {}'.format(time.time()-start_time))
@@ -200,8 +200,17 @@ def main(test_ndx):
     axs[1,1].plot(t, x_lnf[:,7], 'm-.')
     axs[1,2].plot(t, x_lnf[:,8], 'm-.')
 
+    lnz = dm.L3(plant1, 4, dt_data=dt_data, dt_control=dt_control, ac_filter='none', retrain=False, model_fn='model_dig_noz', ignore_zeta=True, hidden_units_per_layer=64)
+    start_time = time.time()
+    lnz.learn(data)
+    print('L3 NoZ: {}'.format(time.time()-start_time))
+    _, _, x_lnz, y_lnz = lnz.simulate_system(x_0, driving_fun, t[-1])
+    axs[0,0].plot(t, x_lnz[:,0], 'y-.', label='L3 (NoZ)')
+    axs[0,1].plot(t, x_lnz[:,1], 'y-.')
+    axs[0,2].plot(t, x_lnz[:,2], 'y-.')
+
     bb = (fig.subplotpars.left, fig.subplotpars.top+0.02, fig.subplotpars.right-fig.subplotpars.left, .1)
-    axs[0,0].legend(bbox_to_anchor=bb, loc='lower left', ncol=5, mode="expand", borderaxespad=0., bbox_transform=fig.transFigure)
+    axs[0,0].legend(bbox_to_anchor=bb, loc='lower left', ncol=6, mode="expand", borderaxespad=0., bbox_transform=fig.transFigure)
 
     for c in range(3):
         axs[1,c].set_xlabel('time (s)')

@@ -430,9 +430,9 @@ class L3(DynamicModel):
         LINEAR = 1
         NONLINEAR = 2
 
-    def __init__(self, dynamic_plant: dfl.dynamic_system.DFLDynamicPlant, n_eta: int, dt_data: float=0.05, dt_control: float=0.1, ac_filter: str='none', model_fn: str='model', retrain: bool=True, hidden_units_per_layer: int=256, num_hidden_layers: int=1):
+    def __init__(self, dynamic_plant: dfl.dynamic_system.DFLDynamicPlant, n_eta: int, dt_data: float=0.05, dt_control: float=0.1, ac_filter: str='none', model_fn: str='model', retrain: bool=True, hidden_units_per_layer: int=256, num_hidden_layers: int=1, ignore_zeta: bool=False):
         self.n_x = dynamic_plant.n_x
-        self.n_z = dynamic_plant.n_eta
+        self.n_z = 0 if ignore_zeta else dynamic_plant.n_eta
         self.n_e = n_eta
         self.n_u = dynamic_plant.n_u
 
@@ -450,6 +450,7 @@ class L3(DynamicModel):
 
         self.model_fn = model_fn
         self.retrain = retrain
+        self.ignore_zeta = ignore_zeta
 
         super().__init__(dynamic_plant, dt_data, dt_control, name='L3')
 
@@ -577,7 +578,10 @@ class L3(DynamicModel):
 
         # Train/load model
         if self.retrain:
-            self.model = self.train_model(self.model, torch.cat((x_minus, z_minus, u_minus), 0), torch.cat((x_plus,z_plus,u_plus), 0))
+            if self.ignore_zeta:
+                self.model = self.train_model(self.model, torch.cat((x_minus, u_minus), 0), torch.cat((x_plus,u_plus), 0))
+            else:
+                self.model = self.train_model(self.model, torch.cat((x_minus, z_minus, u_minus), 0), torch.cat((x_plus,z_plus,u_plus), 0))
             torch.save(self.model.state_dict(), '{}.pt'.format(self.model_fn))
         else:
             self.model.load_state_dict(torch.load('{}.pt'.format(self.model_fn)))
@@ -594,12 +598,15 @@ class L3(DynamicModel):
             z = torch.from_numpy(z.T).type(dtype)
             u = torch.from_numpy(u.T).type(dtype)
 
-            if self.ac_filter == L3.AC_Filter.LINEAR:
-                z -= torch.matmul(u, self.model.D)
-            elif self.ac_filter == L3.AC_Filter.NONLINEAR:
-                nu = self.model.g_u(u)
-                z -= self.model.D(nu)
-            xs = torch.cat((x,z), 0)
+            if self.ignore_zeta:
+                xs = x
+            else:
+                if self.ac_filter == L3.AC_Filter.LINEAR:
+                    z -= torch.matmul(u, self.model.D)
+                elif self.ac_filter == L3.AC_Filter.NONLINEAR:
+                    nu = self.model.g_u(u)
+                    z -= self.model.D(nu)
+                xs = torch.cat((x,z), 0)
             eta = self.model.g(xs)
 
             xs = torch.cat((xs,eta), 0)
@@ -642,7 +649,10 @@ class L3(DynamicModel):
 
     def simulate_system(self, xs_0: np.ndarray, u_func: Callable, t_f: float):
         x_0 = xs_0[:self.n_x]
-        z_0 = xs_0[self.n_x:] if len(xs_0)>self.n_x else self.plant.phi(0,x_0,0)
+        if self.ignore_zeta:
+            z_0 = np.array([])
+        else:
+            z_0 = xs_0[self.n_x:] if len(xs_0)>self.n_x else self.plant.phi(0,x_0,0)
         assert len(z_0)==self.n_z
         u_0 = np.zeros(self.n_u)
 
