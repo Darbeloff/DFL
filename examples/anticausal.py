@@ -9,6 +9,8 @@ from scipy import signal
 
 plt.rcParams["font.family"] = "Times New Roman"
 plt.rcParams["font.size"] = 18
+plt.rcParams['pdf.fonttype'] = 42
+plt.rcParams['ps.fonttype'] = 42
 
 class Plant1(dfl.dynamic_system.DFLDynamicPlant):
     
