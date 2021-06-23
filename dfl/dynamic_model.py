@@ -23,8 +23,11 @@ np.random.seed(seed = seed)
 # torch.autograd.set_detect_anomaly(True)
 # torch.set_num_threads(8)
 
+DT_DATA_DEFAULT = 0.05
+DT_CTRL_DEFAULT = 0.1
+
 class DynamicModel(ABC):
-    def __init__(self, dynamic_plant: dfl.dynamic_system.DFLDynamicPlant, dt_data: float=0.05, dt_control: float=0.1, name: str=''):
+    def __init__(self, dynamic_plant: dfl.dynamic_system.DFLDynamicPlant, dt_data: float=DT_DATA_DEFAULT, dt_control: float=DT_CTRL_DEFAULT, name: str=''):
         self.plant = dynamic_plant
         self.dt_data = dt_data
         self.dt_control = dt_control
@@ -130,7 +133,7 @@ class DynamicModel(ABC):
         return data.reshape(-1, data.shape[-1])
 
 class GroundTruth(DynamicModel):
-    def __init__(self, dynamic_plant, dt_data=0.05, dt_control=0.1, name='Ground Truth'):
+    def __init__(self, dynamic_plant, dt_data=DT_DATA_DEFAULT, dt_control=DT_CTRL_DEFAULT, name='Ground Truth'):
         super().__init__(dynamic_plant, dt_data, dt_control, name)
 
     def simulate_system(self, x_0, u_func, t_f):
@@ -223,7 +226,7 @@ class GroundTruth(DynamicModel):
         return self.plant.f(t,x,u)
 
 class Koopman(DynamicModel):
-    def __init__(self, dynamic_plant: dfl.dynamic_system.DFLDynamicPlant, dt_data: float=0.05, dt_control: float=0.1, n_koop: int=32, observable='polynomial'):
+    def __init__(self, dynamic_plant: dfl.dynamic_system.DFLDynamicPlant, dt_data: float=DT_DATA_DEFAULT, dt_control: float=DT_CTRL_DEFAULT, n_koop: int=32, observable='polynomial'):
         if isinstance(observable, str):
             if observable == 'polynomial':
                 self.g = lambda x : Koopman.g_koop_poly(x,n_koop)
@@ -331,7 +334,7 @@ class Koopman(DynamicModel):
         return t, u, xi, y
 
 class DFL(DynamicModel):
-    def __init__(self, dynamic_plant: dfl.dynamic_system.DFLDynamicPlant, dt_data: float=0.05, dt_control: float=0.1, ac_filter: bool=False):
+    def __init__(self, dynamic_plant: dfl.dynamic_system.DFLDynamicPlant, dt_data: float=DT_DATA_DEFAULT, dt_control: float=DT_CTRL_DEFAULT, ac_filter: bool=False):
         self.ac_filter = ac_filter
         super().__init__(dynamic_plant, dt_data, dt_control, name='DFL')
 
@@ -430,7 +433,7 @@ class L3(DynamicModel):
         LINEAR = 1
         NONLINEAR = 2
 
-    def __init__(self, dynamic_plant: dfl.dynamic_system.DFLDynamicPlant, n_eta: int, dt_data: float=0.05, dt_control: float=0.1, ac_filter: str='none', model_fn: str='model', retrain: bool=True, hidden_units_per_layer: int=256, num_hidden_layers: int=1, ignore_zeta: bool=False):
+    def __init__(self, dynamic_plant: dfl.dynamic_system.DFLDynamicPlant, n_eta: int, dt_data: float=DT_DATA_DEFAULT, dt_control: float=DT_CTRL_DEFAULT, ac_filter: str='none', model_fn: str='model', retrain: bool=True, hidden_units_per_layer: int=256, num_hidden_layers: int=1, ignore_zeta: bool=False):
         self.n_x = dynamic_plant.n_x
         self.n_z = 0 if ignore_zeta else dynamic_plant.n_eta
         self.n_e = n_eta
