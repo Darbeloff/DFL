@@ -414,7 +414,7 @@ class DFL(DynamicModel):
         return y_plus
 
     def simulate_system(self, x_0: np.ndarray, u_func: Callable, t_f: float, continuous: bool=False):
-        u_minus = np.zeros((self.plant.n_u,1))
+        u_minus = np.zeros(self.plant.n_u)
         eta_0 = self.plant.phi(0.0, x_0, u_minus)
         if self.ac_filter:
             eta_0-= np.squeeze(np.matmul(self.D, u_minus))
