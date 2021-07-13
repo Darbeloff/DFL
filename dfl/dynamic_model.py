@@ -14,10 +14,9 @@ import dfl.L3Module as L3Module
 np.set_printoptions(precision = 4)
 np.set_printoptions(suppress = True)
 
-H = 256
 dtype = torch.FloatTensor
 device = 'cpu' #'cuda' if torch.cuda.is_available() else 'cpu'
-seed = 9
+seed = 0
 torch.manual_seed(seed)
 np.random.seed(seed = seed)
 # torch.autograd.set_detect_anomaly(True)
@@ -652,12 +651,12 @@ class L3(DynamicModel):
 
     def simulate_system(self, xs_0: np.ndarray, u_func: Callable, t_f: float):
         x_0 = xs_0[:self.n_x]
+        u_0 = np.zeros(self.n_u)
         if self.ignore_zeta:
             z_0 = np.array([])
         else:
-            z_0 = xs_0[self.n_x:] if len(xs_0)>self.n_x else self.plant.phi(0,x_0,0)
+            z_0 = xs_0[self.n_x:] if len(xs_0)>self.n_x else self.plant.phi(0,x_0,u_0)
         assert len(z_0)==self.n_z
-        u_0 = np.zeros(self.n_u)
 
         xs_0 = self.augmented_state(x_0, z_0, u_0)
 
