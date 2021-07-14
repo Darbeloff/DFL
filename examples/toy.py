@@ -142,50 +142,56 @@ def int_abs_error(y1, y2):
     return np.sum((y1-y2)**2)
 
 def abs_error(y, tru):
-    breakpoint()
-    return np.abs(y[:,:2]-tru[:,:2])
+    return np.sum(np.abs(y[:,:2]-tru[:,:2]),1)
 
 if __name__== "__main__":
     driving_fun = dfl.dynamic_system.DFLDynamicPlant.sin_u_func
-    tf = 3.0
-    PLOT_ALL = False
+    tf = 2.0
     plant1 = Plant1()
     plant2 = Plant2()
     plant3 = Plant3()
-    fig, axs = plt.subplots(plant1.n_x+PLOT_ALL*plant1.n_eta, 1)
+    fig, axs = plt.subplots(1, 1)
 
     x_0 = np.zeros(plant1.n_x)
     tru = dm.GroundTruth(plant1)
     data = tru.generate_data_from_random_trajectories()
     t, u, x_tru, y_tru = tru.simulate_system(x_0, driving_fun, tf)
-    # err_sig = abs_error(y_tru, y_tru)
-    for i in range(plant1.n_x+PLOT_ALL*plant1.n_eta):
-        axs[i].plot(t, u, 'gainsboro')
-        axs[i].text(1.7, -0.43, 'u', fontsize='xx-large', color='tab:gray', fontstyle='italic')
-        axs[i].plot(t, y_tru[:,i], 'k-', label='Gnd. Truth')
+    err_sig = abs_error(y_tru, y_tru)
+    # for i in range(plant1.n_x+PLOT_ALL*plant1.n_eta):
+        # axs[i].plot(t, u, 'gainsboro')
+        # axs[i].text(1.7, -0.43, 'u', fontsize='xx-large', color='tab:gray', fontstyle='italic')
+    axs.plot(t, err_sig, 'k-', label='Gnd. Truth')
 
     koo = dm.Koopman(plant1, observable='polynomial', n_koop=32)
     koo.learn(data, dmd=False)
     _, _, x_koo, y_koo = koo.simulate_system(x_0, driving_fun, tf)
-    for i in range(plant1.n_x+PLOT_ALL*plant1.n_eta): axs[i].plot(t, y_koo[:,i], linestyle='-.', color='g', label='KIC')
+    err_sig = abs_error(y_koo, y_tru)
+    # for i in range(plant1.n_x+PLOT_ALL*plant1.n_eta): axs[i].plot(t, y_koo[:,i], linestyle='-.', color='g', label='KIC')
+    axs.plot(t, err_sig, linestyle='-.', color='g', label='KIC')
     print('KIC Error: {}'.format(int_abs_error(x_koo[:,:2],x_tru)))
 
     edc = dm.Koopman(plant1, observable='polynomial', n_koop=32)
     edc.learn(data, dmd=True)
     _, _, x_edc, y_edc = edc.simulate_system(x_0, driving_fun, tf)
-    for i in range(plant1.n_x+PLOT_ALL*plant1.n_eta): axs[i].plot(t, y_edc[:,i], linestyle='-.', color='c', label='eDMDc')
+    err_sig = abs_error(y_edc, y_tru)
+    # for i in range(plant1.n_x+PLOT_ALL*plant1.n_eta): axs[i].plot(t, y_edc[:,i], linestyle='-.', color='c', label='eDMDc')
+    axs.plot(t, err_sig, linestyle='-.', color='c', label='eDMDc')
     print('eDMDc Error: {}'.format(int_abs_error(x_edc[:,:2],x_tru)))
 
     dfl = dm.DFL(plant1, ac_filter=True)
     dfl.learn(data)
     _, _, x_dfl, y_dfl = dfl.simulate_system(x_0, driving_fun, tf)
-    for i in range(plant1.n_x+PLOT_ALL*plant1.n_eta): axs[i].plot(t, x_dfl[:,i], 'r-.', label='DFL')
+    err_sig = abs_error(x_dfl, x_tru)
+    # for i in range(plant1.n_x+PLOT_ALL*plant1.n_eta): axs[i].plot(t, x_dfl[:,i], 'r-.', label='DFL')
+    axs.plot(t, err_sig, 'r-.', label='DFL')
     print('DFL Error: {}'.format(int_abs_error(x_dfl[:,:2],x_tru)))
 
-    lrn = dm.L3(plant1, 8, ac_filter='linear', model_fn='model_toy_acf', retrain=False, hidden_units_per_layer=256, num_hidden_layers=2)
+    lrn = dm.L3(plant1, 8, ac_filter='linear', model_fn='model_toy', retrain=False, hidden_units_per_layer=256, num_hidden_layers=2)
     lrn.learn(data)
     _, _, x_lrn, y_lrn = lrn.simulate_system(x_0, driving_fun, tf)
-    for i in range(plant1.n_x+PLOT_ALL*plant1.n_eta): axs[i].plot(t, x_lrn[:,i], 'b-.', label='L3')
+    err_sig = abs_error(x_lrn, x_tru)
+    # for i in range(plant1.n_x+PLOT_ALL*plant1.n_eta): axs[i].plot(t, x_lrn[:,i], 'b-.', label='L3')
+    axs.plot(t, err_sig, 'b-.', label='L3')
     print('L3 Error: {}'.format(int_abs_error(x_lrn[:,0],x_tru[:,0])))
 
     x_0_2 = np.zeros(plant2.n_x)
@@ -195,7 +201,9 @@ if __name__== "__main__":
     idmd = dm.Koopman(plant2, observable='polynomial', n_koop=5)
     idmd.learn(data2, dmd=True)
     _, _, x_idmd, y_idmd = idmd.simulate_system(x_0_2, driving_fun, tf)
-    for i in range(plant1.n_x+PLOT_ALL*plant1.n_eta): axs[i].plot(t, y_idmd[:,i], linestyle='-.', color='darkmagenta', label='iDMDc')
+    err_sig = abs_error(y_idmd, y_tru)
+    # for i in range(plant1.n_x+PLOT_ALL*plant1.n_eta): axs[i].plot(t, y_idmd[:,i], linestyle='-.', color='darkmagenta', label='iDMDc')
+    axs.plot(t, err_sig, linestyle='-.', color='darkmagenta', label='iDMDc')
     print('iDMDc Error: {}'.format(int_abs_error(x_idmd[:,:2],x_tru)))
 
     # dfl = dm.DFL(plant2, ac_filter=True)
@@ -208,17 +216,12 @@ if __name__== "__main__":
     # axs.legend(bbox_to_anchor=bb, loc='lower left', ncol=3, mode="expand", borderaxespad=0., bbox_transform=fig.transFigure)
 
     # axs[0].legend(ncol=3, loc='upper center')
-    axs[1+PLOT_ALL*plant1.n_eta].set_xlabel('time (s)')
-    axs[0].set_ylabel('p')
-    axs[1].set_ylabel('q')
-    if PLOT_ALL:
-        axs[2].set_ylabel('e')
-        axs[3].set_ylabel('f')
-        axs[4].set_ylabel('fi')
+    axs.set_xlabel('time (s)')
+    axs.set_ylabel('Error')
+    axs.set_yscale('log')
 
-    axs[0].legend(bbox_to_anchor=(0., 1.02, 1., .102), loc='lower left', ncol=3, mode="expand", borderaxespad=0.)
+    axs.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc='lower left', ncol=3, mode="expand", borderaxespad=0.)
     
-    axs[0].set_ylim(-1,1)
-    axs[1].set_ylim(-1,1)
+    # axs.set_ylim(-1,1)
     
     plt.show()

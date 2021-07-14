@@ -113,11 +113,11 @@ if __name__== "__main__":
     axs.plot(t, x_dfl[:,0], 'r-.', label='DFL')
     print('DFL Error: {}'.format(int_abs_error(x_dfl[:,0],x_tru[:,0])))
 
-    lrn = dm.L3(plant1, 2, ac_filter='linear', model_fn='model_toy_acf', retrain=False, hidden_units_per_layer=256, num_hidden_layers=2)
-    lrn.learn(data)
-    _, _, x_lrn, y_lrn = lrn.simulate_system(x_0, driving_fun, tf)
-    axs.plot(t, x_lrn[:,0], 'b-.', label='L3')
-    print('L3 Error: {}'.format(int_abs_error(x_lrn[:,0],x_tru[:,0])))
+    # lrn = dm.L3(plant1, 2, ac_filter='linear', model_fn='model_toy_acf', retrain=False, hidden_units_per_layer=256, num_hidden_layers=2)
+    # lrn.learn(data)
+    # _, _, x_lrn, y_lrn = lrn.simulate_system(x_0, driving_fun, tf)
+    # axs.plot(t, x_lrn[:,0], 'b-.', label='L3')
+    # print('L3 Error: {}'.format(int_abs_error(x_lrn[:,0],x_tru[:,0])))
 
     # bb = (fig.subplotpars.left, fig.subplotpars.top+0.02, fig.subplotpars.right-fig.subplotpars.left, .1)
     # axs.legend(bbox_to_anchor=bb, loc='lower left', ncol=3, mode="expand", borderaxespad=0., bbox_transform=fig.transFigure)
