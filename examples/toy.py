@@ -137,6 +137,27 @@ class Plant3(Plant1):
     def g(t,x,u):
         return np.concatenate((np.copy(x), Plant3.phi(t,x,u)), 0)
 
+class PlantAddM(Plant1):
+    def __init__(self):
+        self.n_x = 3
+        self.n_eta = 4
+        self.n_u
+
+        # User defined matrices for DFL
+        self.A_cont_x   = np.zeros((self.n_x,self.n_x))
+        self.A_cont_eta = np.array([[ 1.0, 0.0,  0.0, 0.0 ],
+                                    [ 0.0, 1.0, -1.0, 0.0 ],
+                                    [-1.0, 0.0,  0.0, -1.0]])
+        self.B_cont_x   = np.array([[0.0],
+                                    [0.0],
+                                    [1.0]])
+
+        # Limits for inputs and states
+        self.x_min = -2.0*np.ones(self.n_x)
+        self.x_max =  2.0*np.ones(self.n_x)
+        self.u_min = -2.0*np.ones(self.n_u)
+        self.u_max =  2.0*np.ones(self.n_u)
+
 def int_abs_error(y1, y2):
     # return np.sum(np.abs(y1-y2))
     return np.sum((y1-y2)**2)
@@ -205,6 +226,12 @@ if __name__== "__main__":
     # for i in range(plant1.n_x+PLOT_ALL*plant1.n_eta): axs[i].plot(t, y_idmd[:,i], linestyle='-.', color='darkmagenta', label='iDMDc')
     axs.plot(t, err_sig, linestyle='-.', color='darkmagenta', label='iDMDc')
     print('iDMDc Error: {}'.format(int_abs_error(x_idmd[:,:2],x_tru)))
+
+    plantm = PlantAddM()
+    x_0_m = np.zeros(plantm.n_x)
+    trum = dm.GroundTruth(plantm)
+    datam = trum.generate_data_from_random_trajectories()
+    mdmd = dm.Koopman(plantm, observable='polynomial', n_koop=5)
 
     # dfl = dm.DFL(plant2, ac_filter=True)
     # dfl.learn(data2)

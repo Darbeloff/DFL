@@ -16,7 +16,7 @@ np.set_printoptions(suppress = True)
 
 dtype = torch.FloatTensor
 device = 'cpu' #'cuda' if torch.cuda.is_available() else 'cpu'
-seed = 0#1
+seed = 0
 torch.manual_seed(seed)
 np.random.seed(seed = seed)
 # torch.autograd.set_detect_anomaly(True)
@@ -225,7 +225,9 @@ class GroundTruth(DynamicModel):
         return self.plant.f(t,x,u)
 
 class Koopman(DynamicModel):
-    def __init__(self, dynamic_plant: dfl.dynamic_system.DFLDynamicPlant, dt_data: float=DT_DATA_DEFAULT, dt_control: float=DT_CTRL_DEFAULT, n_koop: int=32, observable='polynomial'):
+    def __init__(self, dynamic_plant: dfl.dynamic_system.DFLDynamicPlant, dt_data: float=DT_DATA_DEFAULT, dt_control: float=DT_CTRL_DEFAULT, n_koop: int=None, observable='polynomial'):
+        if not n_koop:
+            n_koop = dynamic_plant.n_x + dynamic_plant.n_eta
         if isinstance(observable, str):
             if observable == 'polynomial':
                 self.g = lambda x : Koopman.g_koop_poly(x,n_koop)
