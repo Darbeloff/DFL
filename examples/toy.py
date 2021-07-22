@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from os import stat
 import dfl.dynamic_system
 import dfl.dynamic_model as dm
 
@@ -141,7 +142,7 @@ class PlantAddM(Plant1):
     def __init__(self):
         self.n_x = 3
         self.n_eta = 4
-        self.n_u
+        self.n_u = 1
 
         # User defined matrices for DFL
         self.A_cont_x   = np.zeros((self.n_x,self.n_x))
@@ -157,6 +158,26 @@ class PlantAddM(Plant1):
         self.x_max =  2.0*np.ones(self.n_x)
         self.u_min = -2.0*np.ones(self.n_u)
         self.u_max =  2.0*np.ones(self.n_u)
+
+    @staticmethod
+    def phi_i0(p):
+        return 10*p
+
+    @staticmethod
+    def phi(t,x,u):
+        p,q,p0 = x
+
+        e = Plant1.phi_c(q)
+        f = PlantAddM.phi_i0(p0)
+        fi = plant1.phi_i(p)
+        er = plant1.phi_r(f)
+
+        return np.array([e,f,fi,er])
+
+    @staticmethod
+    def f(t,x,u):
+        e,f,fi,er = PlantAddM.phi(t,x,u)
+        return np.array([e,f-fi,u[0]-e-er])
 
 def int_abs_error(y1, y2):
     # return np.sum(np.abs(y1-y2))
@@ -177,11 +198,11 @@ if __name__== "__main__":
     tru = dm.GroundTruth(plant1)
     data = tru.generate_data_from_random_trajectories()
     t, u, x_tru, y_tru = tru.simulate_system(x_0, driving_fun, tf)
-    err_sig = abs_error(y_tru, y_tru)
+    # err_sig = abs_error(y_tru, y_tru)
     # for i in range(plant1.n_x+PLOT_ALL*plant1.n_eta):
         # axs[i].plot(t, u, 'gainsboro')
         # axs[i].text(1.7, -0.43, 'u', fontsize='xx-large', color='tab:gray', fontstyle='italic')
-    axs.plot(t, err_sig, 'k-', label='Gnd. Truth')
+    # axs.plot(t, err_sig, 'k-', label='Gnd. Truth')
 
     koo = dm.Koopman(plant1, observable='polynomial', n_koop=32)
     koo.learn(data, dmd=False)
@@ -231,7 +252,13 @@ if __name__== "__main__":
     x_0_m = np.zeros(plantm.n_x)
     trum = dm.GroundTruth(plantm)
     datam = trum.generate_data_from_random_trajectories()
-    mdmd = dm.Koopman(plantm, observable='polynomial', n_koop=5)
+    mdmd = dm.Koopman(plantm, observable='polynomial')
+    mdmd.learn(datam, dmd=True)
+    _, _, x_mdmd, y_mdmd = mdmd.simulate_system(x_0_m, driving_fun, tf)
+    err_sig = abs_error(y_mdmd, y_tru)
+    # for i in range(plant1.n_x+PLOT_ALL*plant1.n_eta): axs[i].plot(t, y_idmd[:,i], linestyle='-.', color='darkmagenta', label='iDMDc')
+    axs.plot(t, err_sig, linestyle='-.', color='chocolate', label='mDMDc')
+    print('mDMDc Error: {}'.format(int_abs_error(x_mdmd[:,:2],x_tru)))
 
     # dfl = dm.DFL(plant2, ac_filter=True)
     # dfl.learn(data2)
