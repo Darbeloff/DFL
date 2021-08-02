@@ -291,9 +291,21 @@ class Koopman(DynamicModel):
                 # Append the value of the monomial to the output
                 y.append(np.prod(phi))
             deg+= 1
-        
+        breakpoint()
         # Trim excess monomials from output
         return y[:m]
+
+    @staticmethod
+    def g_koop_fourier(x: np.ndarray, m: int):
+        # Assert that we are operating on a single state estimate, x
+        assert len(np.shape(x))==1
+
+        y = []
+        for i in range(int(m/2)):
+            y.append(np.cos((1+i)*x))
+            y.append(np.sin((1+i)*x))
+
+        breakpoint()
 
     @staticmethod
     def gkoop1(x: np.ndarray):
