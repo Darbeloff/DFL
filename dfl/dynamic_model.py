@@ -291,7 +291,7 @@ class Koopman(DynamicModel):
                 # Append the value of the monomial to the output
                 y.append(np.prod(phi))
             deg+= 1
-        breakpoint()
+
         # Trim excess monomials from output
         return y[:m]
 
@@ -304,8 +304,8 @@ class Koopman(DynamicModel):
         for i in range(int(m/2)):
             y.append(np.cos((1+i)*x))
             y.append(np.sin((1+i)*x))
-
         breakpoint()
+        raise 'TODO: build the Fourier lifting function'
 
     @staticmethod
     def gkoop1(x: np.ndarray):
@@ -530,33 +530,39 @@ class L3(DynamicModel):
         validation_losses = []
 
         # Main training loop
-        for t in range(n_epochs):
-            # Validation
-            with torch.no_grad():
+        try:
+            for t in range(n_epochs):
+                # Validation
+                with torch.no_grad():
+                    losses = []
+                    for x, y in val_loader:
+                        loss = self.step(x, y, model, loss_fn)
+                        losses.append(loss.item())
+                    validation_losses.append(np.mean(losses))
+
+                # Terminating condition
+                if t>50 and np.mean(validation_losses[-20:-11])<=np.mean(validation_losses[-10:-1]):
+                    break
+
+                # Training
                 losses = []
-                for x, y in val_loader:
+                for x, y in train_loader:
                     loss = self.step(x, y, model, loss_fn)
                     losses.append(loss.item())
-                validation_losses.append(np.mean(losses))
 
-            # Terminating condition
-            if t>50 and np.mean(validation_losses[-20:-11])<=np.mean(validation_losses[-10:-1]):
-                break
+                    optimizer.zero_grad()
+                    loss.backward()
+                    optimizer.step()
+                training_losses.append(np.mean(losses))
 
-            # Training
-            losses = []
-            for x, y in train_loader:
-                loss = self.step(x, y, model, loss_fn)
-                losses.append(loss.item())
+                pstr = f"[{t+1}] Training loss: {training_losses[-1]:.3f}\t Validation loss: {validation_losses[-1]:.3f}"
 
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
-            training_losses.append(np.mean(losses))
-
-            pstr = f"[{t+1}] Training loss: {training_losses[-1]:.3f}\t Validation loss: {validation_losses[-1]:.3f}"
-
-            print(pstr)
+                print(pstr)
+        except KeyboardInterrupt:
+            print('Stopping due to keyboard interrupt. Save and continue (Y/N)?')
+            ans = input()
+            if ans[0].upper() == 'N':
+                exit(0)
 
         fig, axs = plt.subplots(1,1)
         axs.semilogy(range(len(  training_losses)),   training_losses, label=  'Training Loss')

@@ -51,7 +51,7 @@ class DFLDynamicPlant(ABC):
 
     @staticmethod
     def rand_u_func(y,t):
-        return np.random.normal(0.0,0.3)
+        return np.random.normal(0.0,0.3,1)
 
     @staticmethod
     def sin_u_func(y,t):

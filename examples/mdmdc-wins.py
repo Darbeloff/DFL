@@ -33,11 +33,13 @@ class Plant1(dfl.dynamic_system.DFLDynamicPlant):
     # functions defining constituitive relations for this particular system
     @staticmethod
     def phi_c(q):
-        return np.sign(q)*q**2
+        return -3*q*(q+1)*(q-1)
+        # return np.sign(q)*q**2
 
     @staticmethod
     def phi_r(er):
-        return 2*(1/(1+np.exp(-4*er))-0.5)
+        return 3*er*(er+1)*(er-1)
+        # return 2*(1/(1+np.exp(-4*er))-0.5)
     
     # nonlinear state equations
     @staticmethod
@@ -104,7 +106,7 @@ class PlantM(Plant1):
 
     @staticmethod
     def phi_i(p):
-        return 8*p
+        return 1*p
 
     @staticmethod
     def phi(t,x,u):
@@ -122,79 +124,78 @@ class PlantM(Plant1):
         return np.array([f,u[0]-er-ec])
 
 def int_abs_error(y1, y2):
-    return np.sum(np.abs(y1-y2))
-    # return np.sum((y1-y2)**2)
+    # return np.sum(np.abs(y1-y2))
+    return np.sum((y1-y2)**2)
+
+def test_model(dm, x_0, driving_fun, tf, ls, color, label, tru):
+    _, _, x, y = dm.simulate_system(x_0, driving_fun, tf)
+    # err_sig = abs_error(y, tru)
+    # axs.plot(t, err_sig, linestyle=ls, color=color, label=label)
+    # print('{} Error: {}'.format(label, int_abs_error(y[:,:1],tru[:,:1])))
+    return int_abs_error(y[:,:1],tru[:,:1])
+
+def cdf(data, bins=50):
+    count, bins_count = np.histogram(data, bins=bins)
+    pdf = count / sum(count)
+    cdf = np.cumsum(pdf)
+    return bins_count[1:], cdf
 
 if __name__== "__main__":
-    driving_fun = dfl.dynamic_system.DFLDynamicPlant.sin_u_func
+    # Setup
+    tf = 10.0
     plant1 = Plant1()
-    tf = 2.0
+    planti = PlantI()
+    plantm = PlantM()
     x_0 = np.zeros(plant1.n_x)
+    x_0i = np.zeros(planti.n_x)
+    x_0m = np.zeros(plantm.n_x)
     fig, axs = plt.subplots(1, 1)
 
+    # Training
     tru = dm.GroundTruth(plant1)
     data = tru.generate_data_from_random_trajectories()
-    t, u, x_tru, y_tru = tru.simulate_system(x_0, driving_fun, tf)
-    axs.plot(t, u, 'gainsboro')
-    axs.text(3.7, -0.43, 'u', fontsize='xx-large', color='tab:gray', fontstyle='italic')
-    axs.plot(t, x_tru[:,0], 'k-', label='Gnd. Truth')
 
-    planti = PlantI()
-    x_0i = np.zeros(planti.n_x)
     trui = dm.GroundTruth(planti)
     datai = trui.generate_data_from_random_trajectories()
     idmdc = dm.Koopman(planti, observable='polynomial')
     idmdc.learn(datai)
-    _, _, x_idmdc, y_idmdc = idmdc.simulate_system(x_0i, driving_fun, tf)
-    axs.plot(t, x_idmdc[:,0], linestyle='dashed', color='darkmagenta', label='iDMDc')
-    print('iDMDc Error: {}'.format(int_abs_error(x_tru[:,0], x_idmdc[:,0])))
 
-    plantm = PlantM()
-    x_0m = np.zeros(plantm.n_x)
     trum = dm.GroundTruth(plantm)
     datam = trum.generate_data_from_random_trajectories()
     mdmdc = dm.Koopman(plantm, observable='polynomial')
     mdmdc.learn(datam)
-    _, _, x_mdmdc, y_mdmdc = mdmdc.simulate_system(x_0m, driving_fun, tf)
-    axs.plot(t, x_mdmdc[:,0], linestyle='dashdot', color='chocolate', label='mDMDc')
-    print('mDMDc Error: {}'.format(int_abs_error(x_tru[:,0], x_mdmdc[:,0])))
 
-    # koo = dm.Koopman(plant1, observable='polynomial')
-    # koo.learn(data)
-    # _, _, x_koo, y_koo = koo.simulate_system(x_0, driving_fun, tf)
-    # axs.plot(t, x_koo[:,0], 'g-.', label='Koopman')
-    # print('Koopman Error: {}'.format(int_abs_error(x_koo[:,0],x_tru[:,0])))
+    # Testing
+    n_models = 2
+    n_tests = 1000
+    err_arr = np.zeros((n_models, n_tests))
+    tf=1.0
+    for i in range(n_tests):
+        driving_fun = np.random.normal(0.0,0.3,(int(tf/dm.DT_CTRL_DEFAULT),1))
+        t, u, x_tru, y_tru = tru.simulate_system(x_0, driving_fun, tf)
+        # err_sig = abs_error(y_tru, y_tru)
+        # for i in range(plant1.n_x+PLOT_ALL*plant1.n_eta):
+            # axs[i].plot(t, u, 'gainsboro')
+            # axs[i].text(1.7, -0.43, 'u', fontsize='xx-large', color='tab:gray', fontstyle='italic')
+        # axs.plot(t, err_sig, 'k-', label='Gnd. Truth')
 
-    # dmd = dm.Koopman(plant1, observable='polynomial', n_koop=4)
-    # dmd.learn(data, dmd=True)
-    # _, _, x_dmd, y_dmd = dmd.simulate_system(x_0, driving_fun, tf)
-    # axs.plot(t, x_dmd[:,0], 'c-.', label='DMDc')
-    # print('DMDc Error: {}'.format(int_abs_error(x_dmd[:,0],x_tru[:,0])))
+        err_arr[0,i] = test_model(mdmdc, x_0m, driving_fun, tf, 'dashdot', 'chocolate'  , 'aDMDc', y_tru)
+        err_arr[1,i] = test_model(idmdc, x_0i, driving_fun, tf, 'dashed' , 'darkmagenta', 'iDMDc', y_tru)
 
-    # edmd = dm.Koopman(plant1, observable='polynomial')
-    # edmd.learn(data, dmd=True)
-    # _, _, x_edmd, y_edmd = edmd.simulate_system(x_0, driving_fun, tf)
-    # axs.plot(t, x_edmd[:,0], 'm-.', label='eDMDc')
-    # print('eDMDc Error: {}'.format(int_abs_error(x_edmd[:,0],x_tru[:,0])))
+    print('Mean', np.mean(err_arr,axis=1))
+    print('stderr', np.std(err_arr, axis=1)/n_tests)
+    print('median', np.median(err_arr, axis=1))
+    print('90th p', np.percentile(err_arr, 90, axis=1))
 
-    # dfl = dm.DFL(plant1, ac_filter=True)
-    # dfl.learn(data)
-    # _, _, x_dfl, y_dfl = dfl.simulate_system(x_0, driving_fun, tf)
-    # axs.plot(t, x_dfl[:,0], 'r-.', label='DFL')
-    # print('DFL Error: {}'.format(int_abs_error(x_dfl[:,0],x_tru[:,0])))
+    xa, cdfa = cdf(err_arr[0,:])
+    xi, cdfi = cdf(err_arr[1,:])
+    axs.semilogx(xa, cdfa, color='chocolate', label='AL2')
+    axs.semilogx(xi, cdfi, color='darkmagenta', label='IL2')
 
-    # lrn = dm.L3(plant1, 2, ac_filter='linear', model_fn='model_toy_acf', retrain=False, hidden_units_per_layer=256, num_hidden_layers=2)
-    # lrn.learn(data)
-    # _, _, x_lrn, y_lrn = lrn.simulate_system(x_0, driving_fun, tf)
-    # axs.plot(t, x_lrn[:,0], 'b-.', label='L3')
-    # print('L3 Error: {}'.format(int_abs_error(x_lrn[:,0],x_tru[:,0])))
-
-    # bb = (fig.subplotpars.left, fig.subplotpars.top+0.02, fig.subplotpars.right-fig.subplotpars.left, .1)
-    # axs.legend(bbox_to_anchor=bb, loc='lower left', ncol=3, mode="expand", borderaxespad=0., bbox_transform=fig.transFigure)
-
-    axs.legend(ncol=3, loc='upper center')
-    axs.set_xlabel('time (s)')
-    axs.set_ylabel('x (m)')
-    axs.set_ylim(-0.6, 1.2)
+    # axs.legend(ncol=2, loc='upper center')
+    axs.legend()
+    axs.set_xlabel('SSE')
+    axs.set_ylabel('CDF')
+    # axs.set_ylim(-0.6, 1.2)
     
     plt.show()

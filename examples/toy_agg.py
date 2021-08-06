@@ -106,38 +106,6 @@ class Plant2(Plant1):
     def g(t,x,u):
         return np.concatenate((np.copy(x), Plant2.phi(t,x,u)), 0)
 
-class Plant3(Plant1):
-    def __init__(self):
-        self.n_x = 3
-        self.n_eta = 2
-        self.n_u = 1
-
-        self.assign_random_system_model()
-
-    @staticmethod
-    def phi(t,x,u):
-        eta_old = Plant1.phi(t,x,u)
-
-        e = eta_old[0]
-        fi = eta_old[2]
-
-        eta = np.array([e,fi])
-
-        return eta
-
-    @staticmethod
-    def f(t,x,u):
-        eta_old = Plant1.phi(t,x,u)
-        e = eta_old[0]
-        fl = eta_old[1]
-        fi = eta_old[2]
-
-        return np.array([e, fl-fi, fi])
-
-    @staticmethod
-    def g(t,x,u):
-        return np.concatenate((np.copy(x), Plant3.phi(t,x,u)), 0)
-
 class PlantAddM(Plant1):
     def __init__(self):
         self.n_x = 3
@@ -169,8 +137,8 @@ class PlantAddM(Plant1):
 
         e = Plant1.phi_c(q)
         f = PlantAddM.phi_i0(p0)
-        fi = plant1.phi_i(p)
-        er = plant1.phi_r(f)
+        fi = Plant1.phi_i(p)
+        er = Plant1.phi_r(f)
 
         return np.array([e,f,fi,er])
 
@@ -179,6 +147,10 @@ class PlantAddM(Plant1):
         e,f,fi,er = PlantAddM.phi(t,x,u)
         return np.array([e,f-fi,u[0]-e-er])
 
+    @staticmethod
+    def g(t,x,u):
+        return np.concatenate((np.copy(x), PlantAddM.phi(t,x,u)), 0)
+
 def int_abs_error(y1, y2):
     # return np.sum(np.abs(y1-y2))
     return np.sum((y1-y2)**2)
@@ -186,85 +158,70 @@ def int_abs_error(y1, y2):
 def abs_error(y, tru):
     return np.sum(np.abs(y[:,:2]-tru[:,:2]),1)
 
+def test_model(dm, x_0, driving_fun, tf, ls, color, label, tru):
+    _, _, x, y = dm.simulate_system(x_0, driving_fun, tf)
+    # err_sig = abs_error(y, tru)
+    # axs.plot(t, err_sig, linestyle=ls, color=color, label=label)
+    # print('{} Error: {}'.format(label, int_abs_error(y[:,:2],tru[:,:2])))
+    return int_abs_error(y[:,:2],tru[:,:2])
+
 if __name__== "__main__":
-    driving_fun = dfl.dynamic_system.DFLDynamicPlant.sin_u_func
-    tf = 2.0
+    # Setup
+    tf = 10.0
     plant1 = Plant1()
     plant2 = Plant2()
-    plant3 = Plant3()
     fig, axs = plt.subplots(1, 1)
-
     x_0 = np.zeros(plant1.n_x)
-    tru = dm.GroundTruth(plant1)
-    data = tru.generate_data_from_random_trajectories()
-    t, u, x_tru, y_tru = tru.simulate_system(x_0, driving_fun, tf)
-    # err_sig = abs_error(y_tru, y_tru)
-    # for i in range(plant1.n_x+PLOT_ALL*plant1.n_eta):
-        # axs[i].plot(t, u, 'gainsboro')
-        # axs[i].text(1.7, -0.43, 'u', fontsize='xx-large', color='tab:gray', fontstyle='italic')
-    # axs.plot(t, err_sig, 'k-', label='Gnd. Truth')
-
-    koo = dm.Koopman(plant1, observable='polynomial', n_koop=32)
-    koo.learn(data, dmd=False)
-    _, _, x_koo, y_koo = koo.simulate_system(x_0, driving_fun, tf)
-    err_sig = abs_error(y_koo, y_tru)
-    # for i in range(plant1.n_x+PLOT_ALL*plant1.n_eta): axs[i].plot(t, y_koo[:,i], linestyle='-.', color='g', label='KIC')
-    axs.plot(t, err_sig, linestyle='dotted', color='g', label='KIC')
-    print('KIC Error: {}'.format(int_abs_error(x_koo[:,:2],x_tru)))
-
-    edc = dm.Koopman(plant1, observable='polynomial', n_koop=32)
-    edc.learn(data, dmd=True)
-    _, _, x_edc, y_edc = edc.simulate_system(x_0, driving_fun, tf)
-    err_sig = abs_error(y_edc, y_tru)
-    # for i in range(plant1.n_x+PLOT_ALL*plant1.n_eta): axs[i].plot(t, y_edc[:,i], linestyle='-.', color='c', label='eDMDc')
-    axs.plot(t, err_sig, linestyle='dashed', color='c', label='eDMDc')
-    print('eDMDc Error: {}'.format(int_abs_error(x_edc[:,:2],x_tru)))
-
-    dfl = dm.DFL(plant1, ac_filter=True)
-    dfl.learn(data)
-    _, _, x_dfl, y_dfl = dfl.simulate_system(x_0, driving_fun, tf)
-    err_sig = abs_error(x_dfl, x_tru)
-    # for i in range(plant1.n_x+PLOT_ALL*plant1.n_eta): axs[i].plot(t, x_dfl[:,i], 'r-.', label='DFL')
-    axs.plot(t, err_sig, linestyle='dashdot', color='r', label='DFL')
-    print('DFL Error: {}'.format(int_abs_error(x_dfl[:,:2],x_tru)))
-
-    lrn = dm.L3(plant1, 8, ac_filter='linear', model_fn='model_toy', retrain=False, hidden_units_per_layer=256, num_hidden_layers=2)
-    lrn.learn(data)
-    _, _, x_lrn, y_lrn = lrn.simulate_system(x_0, driving_fun, tf)
-    err_sig = abs_error(x_lrn, x_tru)
-    # for i in range(plant1.n_x+PLOT_ALL*plant1.n_eta): axs[i].plot(t, x_lrn[:,i], 'b-.', label='L3')
-    axs.plot(t, err_sig, linestyle='dotted', color='b', label='L3')
-    print('L3 Error: {}'.format(int_abs_error(x_lrn[:,0],x_tru[:,0])))
-
+    x_0_2 = np.zeros(plant2.n_x)
     plantm = PlantAddM()
     x_0_m = np.zeros(plantm.n_x)
-    trum = dm.GroundTruth(plantm)
-    datam = trum.generate_data_from_random_trajectories()
-    mdmd = dm.Koopman(plantm, observable='polynomial')
-    mdmd.learn(datam, dmd=True)
-    _, _, x_mdmd, y_mdmd = mdmd.simulate_system(x_0_m, driving_fun, tf)
-    err_sig = abs_error(y_mdmd, y_tru)
-    # for i in range(plant1.n_x+PLOT_ALL*plant1.n_eta): axs[i].plot(t, y_idmd[:,i], linestyle='-.', color='darkmagenta', label='iDMDc')
-    axs.plot(t, err_sig, linestyle='dashdot', color='chocolate', label='AL2')
-    print('mDMDc Error: {}'.format(int_abs_error(x_mdmd[:,:2],x_tru)))
+    
+    # Training
+    tru = dm.GroundTruth(plant1)
+    data = tru.generate_data_from_random_trajectories()
+    koo = dm.Koopman(plant1, observable='polynomial', n_koop=32)
+    koo.learn(data, dmd=False)
+    edc = dm.Koopman(plant1, observable='polynomial', n_koop=32)
+    edc.learn(data, dmd=True)  
+    adf = dm.DFL(plant1, ac_filter=True)
+    adf.learn(data)
+    lrn = dm.L3(plant1, 8, ac_filter='linear', model_fn='model_toy', retrain=False, hidden_units_per_layer=256, num_hidden_layers=2)
+    lrn.learn(data)
 
-    x_0_2 = np.zeros(plant2.n_x)
     tru2 = dm.GroundTruth(plant2)
     data2 = tru2.generate_data_from_random_trajectories(x_0=x_0_2)
+    idc = dm.Koopman(plant2, observable='polynomial')
+    idc.learn(data2, dmd=True)
+    
+    trum = dm.GroundTruth(plantm)
+    datam = trum.generate_data_from_random_trajectories()
+    adc = dm.Koopman(plantm, observable='polynomial')
+    adc.learn(datam, dmd=True)
+    
+    # Testing
+    n_models = 6
+    n_tests = 100
+    err_arr = np.zeros((n_models, n_tests))
+    tf=1.0
+    for i in range(n_tests):
+        driving_fun = np.random.normal(0.0,0.3,(int(tf/dm.DT_CTRL_DEFAULT),1))
+        t, u, x_tru, y_tru = tru.simulate_system(x_0, driving_fun, tf)
+        # err_sig = abs_error(y_tru, y_tru)
+        # for i in range(plant1.n_x+PLOT_ALL*plant1.n_eta):
+            # axs[i].plot(t, u, 'gainsboro')
+            # axs[i].text(1.7, -0.43, 'u', fontsize='xx-large', color='tab:gray', fontstyle='italic')
+        # axs.plot(t, err_sig, 'k-', label='Gnd. Truth')
 
-    idmd = dm.Koopman(plant2, observable='polynomial', n_koop=5)
-    idmd.learn(data2, dmd=True)
-    _, _, x_idmd, y_idmd = idmd.simulate_system(x_0_2, driving_fun, tf)
-    err_sig = abs_error(y_idmd, y_tru)
-    # for i in range(plant1.n_x+PLOT_ALL*plant1.n_eta): axs[i].plot(t, y_idmd[:,i], linestyle='-.', color='darkmagenta', label='iDMDc')
-    axs.plot(t, err_sig, linestyle='dashed', color='darkmagenta', label='IL2')
-    print('iDMDc Error: {}'.format(int_abs_error(x_idmd[:,:2],x_tru)))
+        err_arr[0,i] = test_model(koo, x_0  , driving_fun, tf, 'dotted' , 'g'          , 'KIC'  , y_tru)
+        err_arr[1,i] = test_model(edc, x_0  , driving_fun, tf, 'dashed' , 'c'          , 'eDMDc', y_tru)
+        err_arr[2,i] = test_model(adf, x_0  , driving_fun, tf, 'dashdot', 'r'          , 'DFL'  , y_tru)
+        err_arr[3,i] = test_model(lrn, x_0  , driving_fun, tf, 'dotted' , 'b'          , 'L3'   , y_tru)
+        err_arr[4,i] = test_model(adc, x_0_m, driving_fun, tf, 'dashdot', 'chocolate'  , 'AL2', y_tru)
+        err_arr[5,i] = test_model(idc, x_0_2, driving_fun, tf, 'dashed' , 'darkmagenta', 'IL2', y_tru)
 
-    # dfl = dm.DFL(plant2, ac_filter=True)
-    # dfl.learn(data2)
-    # _, _, x_dfl, y_dfl = dfl.simulate_system(x_0_2, driving_fun, tf)
-    # for i in range(plant1.n_x+PLOT_ALL*plant1.n_eta): axs[i].plot(t, x_dfl[:,i], 'b-.', label='iDFL')
-    # print('iDFL Error: {}'.format(int_abs_error(x_dfl[:,:2],x_tru)))
+    print(np.mean(err_arr,axis=1))
+    print(np.std(err_arr, axis=1)/n_tests)
+    exit(0)
 
     # bb = (fig.subplotpars.left, fig.subplotpars.top+0.02, fig.subplotpars.right-fig.subplotpars.left, .1)
     # axs.legend(bbox_to_anchor=bb, loc='lower left', ncol=3, mode="expand", borderaxespad=0., bbox_transform=fig.transFigure)
