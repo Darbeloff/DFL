@@ -231,6 +231,8 @@ class Koopman(DynamicModel):
         if isinstance(observable, str):
             if observable == 'polynomial':
                 self.g = lambda x : Koopman.g_koop_poly(x,n_koop)
+            elif observable == 'fourier':
+                self.g = lambda x : Koopman.g_koop_fourier(x,n_koop)
             elif observable == 'filippos':
                 self.g = Koopman.gkoop2
             else:
@@ -300,12 +302,13 @@ class Koopman(DynamicModel):
         # Assert that we are operating on a single state estimate, x
         assert len(np.shape(x))==1
 
-        y = []
-        for i in range(int(m/2)):
-            y.append(np.cos((1+i)*x))
-            y.append(np.sin((1+i)*x))
-        breakpoint()
-        raise 'TODO: build the Fourier lifting function'
+        output = np.copy(x)
+        if len(output)<m:
+            # Normalize x?
+            temp = tuple([np.arange(m+1-len(output))]*len(x))
+            c = np.array(np.meshgrid(*temp)).T.reshape(-1,len(x))
+            output = np.concatenate((output,np.cos(np.pi*np.dot(c,x))),0).tolist()
+        return output[:m]
 
     @staticmethod
     def gkoop1(x: np.ndarray):

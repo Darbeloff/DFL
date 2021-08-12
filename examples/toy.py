@@ -9,9 +9,10 @@ import matplotlib.pyplot as plt
 from scipy import signal
 
 plt.rcParams["font.family"] = "Times New Roman"
-plt.rcParams["font.size"] = 18
+plt.rcParams["font.size"] = 36
 plt.rcParams['pdf.fonttype'] = 42
 plt.rcParams['ps.fonttype'] = 42
+lw = 5
 
 class Plant1(dfl.dynamic_system.DFLDynamicPlant):
     def __init__(self):
@@ -209,7 +210,7 @@ if __name__== "__main__":
     _, _, x_koo, y_koo = koo.simulate_system(x_0, driving_fun, tf)
     err_sig = abs_error(y_koo, y_tru)
     # for i in range(plant1.n_x+PLOT_ALL*plant1.n_eta): axs[i].plot(t, y_koo[:,i], linestyle='-.', color='g', label='KIC')
-    axs.plot(t, err_sig, linestyle='dotted', color='g', label='KIC')
+    axs.plot(t, err_sig, linestyle='dotted', color='g', label='KIC', linewidth=lw)
     print('KIC Error: {}'.format(int_abs_error(x_koo[:,:2],x_tru)))
 
     edc = dm.Koopman(plant1, observable='polynomial', n_koop=32)
@@ -217,7 +218,7 @@ if __name__== "__main__":
     _, _, x_edc, y_edc = edc.simulate_system(x_0, driving_fun, tf)
     err_sig = abs_error(y_edc, y_tru)
     # for i in range(plant1.n_x+PLOT_ALL*plant1.n_eta): axs[i].plot(t, y_edc[:,i], linestyle='-.', color='c', label='eDMDc')
-    axs.plot(t, err_sig, linestyle='dashed', color='c', label='eDMDc')
+    axs.plot(t, err_sig, linestyle='dashed', color='c', label='eDMDc', linewidth=lw)
     print('eDMDc Error: {}'.format(int_abs_error(x_edc[:,:2],x_tru)))
 
     dfl = dm.DFL(plant1, ac_filter=True)
@@ -225,7 +226,7 @@ if __name__== "__main__":
     _, _, x_dfl, y_dfl = dfl.simulate_system(x_0, driving_fun, tf)
     err_sig = abs_error(x_dfl, x_tru)
     # for i in range(plant1.n_x+PLOT_ALL*plant1.n_eta): axs[i].plot(t, x_dfl[:,i], 'r-.', label='DFL')
-    axs.plot(t, err_sig, linestyle='dashdot', color='r', label='DFL')
+    axs.plot(t, err_sig, linestyle='dashdot', color='r', label='DFL', linewidth=lw)
     print('DFL Error: {}'.format(int_abs_error(x_dfl[:,:2],x_tru)))
 
     lrn = dm.L3(plant1, 8, ac_filter='linear', model_fn='model_toy', retrain=False, hidden_units_per_layer=256, num_hidden_layers=2)
@@ -233,7 +234,7 @@ if __name__== "__main__":
     _, _, x_lrn, y_lrn = lrn.simulate_system(x_0, driving_fun, tf)
     err_sig = abs_error(x_lrn, x_tru)
     # for i in range(plant1.n_x+PLOT_ALL*plant1.n_eta): axs[i].plot(t, x_lrn[:,i], 'b-.', label='L3')
-    axs.plot(t, err_sig, linestyle='dotted', color='b', label='L3')
+    axs.plot(t, err_sig, linestyle='dotted', color='b', label='L3', linewidth=lw)
     print('L3 Error: {}'.format(int_abs_error(x_lrn[:,0],x_tru[:,0])))
 
     plantm = PlantAddM()
@@ -245,7 +246,7 @@ if __name__== "__main__":
     _, _, x_mdmd, y_mdmd = mdmd.simulate_system(x_0_m, driving_fun, tf)
     err_sig = abs_error(y_mdmd, y_tru)
     # for i in range(plant1.n_x+PLOT_ALL*plant1.n_eta): axs[i].plot(t, y_idmd[:,i], linestyle='-.', color='darkmagenta', label='iDMDc')
-    axs.plot(t, err_sig, linestyle='dashdot', color='chocolate', label='AL2')
+    axs.plot(t, err_sig, linestyle='dashdot', color='chocolate', label='AL2', linewidth=lw)
     print('mDMDc Error: {}'.format(int_abs_error(x_mdmd[:,:2],x_tru)))
 
     x_0_2 = np.zeros(plant2.n_x)
@@ -257,7 +258,7 @@ if __name__== "__main__":
     _, _, x_idmd, y_idmd = idmd.simulate_system(x_0_2, driving_fun, tf)
     err_sig = abs_error(y_idmd, y_tru)
     # for i in range(plant1.n_x+PLOT_ALL*plant1.n_eta): axs[i].plot(t, y_idmd[:,i], linestyle='-.', color='darkmagenta', label='iDMDc')
-    axs.plot(t, err_sig, linestyle='dashed', color='darkmagenta', label='IL2')
+    axs.plot(t, err_sig, linestyle='dashed', color='darkmagenta', label='IL2', linewidth=lw)
     print('iDMDc Error: {}'.format(int_abs_error(x_idmd[:,:2],x_tru)))
 
     # dfl = dm.DFL(plant2, ac_filter=True)
@@ -274,7 +275,8 @@ if __name__== "__main__":
     axs.set_ylabel('Error')
     axs.set_yscale('log')
 
-    axs.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc='lower left', ncol=3, mode="expand", borderaxespad=0.)
+    # axs.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc='lower left', ncol=3, mode="expand", borderaxespad=0.)
+    axs.legend(ncol=3, loc='lower right')
     
     # axs.set_ylim(-1,1)
     
