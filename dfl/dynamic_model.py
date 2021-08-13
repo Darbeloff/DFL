@@ -225,11 +225,13 @@ class GroundTruth(DynamicModel):
         return self.plant.f(t,x,u)
 
 class Koopman(DynamicModel):
-    def __init__(self, dynamic_plant: dfl.dynamic_system.DFLDynamicPlant, dt_data: float=DT_DATA_DEFAULT, dt_control: float=DT_CTRL_DEFAULT, n_koop: int=None, observable='polynomial'):
+    def __init__(self, dynamic_plant: dfl.dynamic_system.DFLDynamicPlant, dt_data: float=DT_DATA_DEFAULT, dt_control: float=DT_CTRL_DEFAULT, n_koop: int=None, observable='identity'):
         if not n_koop:
             n_koop = dynamic_plant.n_x + dynamic_plant.n_eta
         if isinstance(observable, str):
-            if observable == 'polynomial':
+            if observable == 'identity':
+                self.g = lambda x : x.tolist()
+            elif observable == 'polynomial':
                 self.g = lambda x : Koopman.g_koop_poly(x,n_koop)
             elif observable == 'fourier':
                 self.g = lambda x : Koopman.g_koop_fourier(x,n_koop)
