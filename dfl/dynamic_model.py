@@ -225,13 +225,9 @@ class GroundTruth(DynamicModel):
         return self.plant.f(t,x,u)
 
 class Koopman(DynamicModel):
-    def __init__(self, dynamic_plant: dfl.dynamic_system.DFLDynamicPlant, dt_data: float=DT_DATA_DEFAULT, dt_control: float=DT_CTRL_DEFAULT, n_koop: int=None, observable='identity'):
-        if not n_koop:
-            n_koop = dynamic_plant.n_x + dynamic_plant.n_eta
+    def __init__(self, dynamic_plant: dfl.dynamic_system.DFLDynamicPlant, n_koop: int, dt_data: float=DT_DATA_DEFAULT, dt_control: float=DT_CTRL_DEFAULT, observable='polynomial'):
         if isinstance(observable, str):
-            if observable == 'identity':
-                self.g = lambda x : x.tolist()
-            elif observable == 'polynomial':
+            if observable == 'polynomial':
                 self.g = lambda x : Koopman.g_koop_poly(x,n_koop)
             elif observable == 'fourier':
                 self.g = lambda x : Koopman.g_koop_fourier(x,n_koop)
@@ -272,7 +268,7 @@ class Koopman(DynamicModel):
 
         if not isinstance(u,np.ndarray):
             u = np.array([u])
-        
+
         y_plus = np.dot(self.A_disc_koop,x) + np.dot(self.B_disc_koop, u)
 
         return y_plus
@@ -643,6 +639,36 @@ class L3(DynamicModel):
         self.augmented_state = augmented_state
 
         self.trained = True
+
+    def regress_new_LDM(self, data):
+        # Copy data for manipulation
+        data = copy.deepcopy(data)
+
+        # Format data
+        x_minus = DynamicModel.flatten_trajectory_data(data['x'  ]['minus'])
+        z_minus = DynamicModel.flatten_trajectory_data(data['eta']['minus'])
+        u_minus = DynamicModel.flatten_trajectory_data(data['u'  ]['minus'])
+        x_plus  = DynamicModel.flatten_trajectory_data(data['x'  ]['plus' ])
+        z_plus  = DynamicModel.flatten_trajectory_data(data['eta']['plus' ])
+        u_plus  = DynamicModel.flatten_trajectory_data(data['u'  ]['plus' ])
+
+        xs_minus = []
+        xs_plus = []
+        for i in range(len(x_minus)):
+            xa_minus = self.augmented_state(x_minus[i], z_minus[i], u_minus[i])
+            xa_plus  = self.augmented_state(x_plus [i], z_plus [i], u_plus [i])
+
+            xs_minus.append(np.concatenate((xa_minus, u_minus[i]),0))
+            xs_plus.append(xa_plus)
+
+        xs_minus = np.asarray(xs_minus)
+        xs_plus  = np.asarray(xs_plus )
+
+        ldm = np.linalg.lstsq(xs_minus,xs_plus,rcond=None)[0].T
+
+        self.model.A.weight.data = torch.from_numpy(ldm[                 :self.n_x         ,:]).type(dtype)
+        self.model.Z.weight.data = torch.from_numpy(ldm[self.n_x         :self.n_x+self.n_z,:]).type(dtype)
+        self.model.H.weight.data = torch.from_numpy(ldm[self.n_x+self.n_z:                 ,:]).type(dtype)
 
     def f(self, t: float, xs: np.ndarray, u:np.ndarray):
         self.check_for_training()
