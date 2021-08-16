@@ -39,9 +39,10 @@ class Plant1(dfl.dynamic_system.DFLDynamicPlant):
 
     @staticmethod
     def phi_r(er):
+        return np.sign(er)*er**4
         # return (1/(1+np.exp(-4*er))-0.5)
         # return er*(er+1)*(er-1)
-        return Plant1.phi_c(er)+Plant1.phi_i(er)
+        # return Plant1.phi_c(er)+Plant1.phi_i(er)
 
     @staticmethod
     def phi_i(p):
@@ -158,14 +159,8 @@ def int_abs_error(y1, y2):
     return np.sum((y1-y2)**2)
 
 def abs_error(y, tru):
-    return np.sum(np.abs(y[:,:2]-tru[:,:2]),1)
-
-def test_model(dm, x_0, driving_fun, tf, ls, color, label, tru):
-    _, _, x, y = dm.simulate_system(x_0, driving_fun, tf)
-    # err_sig = abs_error(y, tru)
-    # axs.plot(t, err_sig, linestyle=ls, color=color, label=label)
-    # print('{} Error: {}'.format(label, int_abs_error(y[:,:2],tru[:,:2])))
-    return int_abs_error(y[:,:2],tru[:,:2])
+    # return np.sum(np.abs(y[:,:2]-tru[:,:2]),1)
+    return np.sum((y-tru)**2,1)
 
 if __name__== "__main__":
     # Setup
@@ -180,13 +175,13 @@ if __name__== "__main__":
     # Training
     tru = dm.GroundTruth(plant1)
     data = tru.generate_data_from_random_trajectories()
-    koo = dm.Koopman(plant1, observable='polynomial', n_koop=32)
+    koo = dm.Koopman(plant1, observable='polynomial', n_koop=4)
     koo.learn(data, dmd=False)
-    edc = dm.Koopman(plant1, observable='polynomial', n_koop=32)
+    edc = dm.Koopman(plant1, observable='polynomial', n_koop=4)
     edc.learn(data, dmd=True)  
     adf = dm.DFL(plant1, ac_filter=True)
     adf.learn(data)
-    lrn = dm.L3(plant1, 8, ac_filter='linear', model_fn='model_toy', retrain=False, hidden_units_per_layer=256, num_hidden_layers=2)
+    lrn = dm.L3(plant1, 4, ac_filter='linear', model_fn='model_toy', retrain=False, hidden_units_per_layer=256, num_hidden_layers=2)
     lrn.learn(data)
     lrn.regress_new_LDM(data)
 
@@ -202,49 +197,44 @@ if __name__== "__main__":
     
     # Testing
     driving_fun = dfl.dynamic_system.DFLDynamicPlant.sin_u_func
-    tf = 2.0
-    fig, axs = plt.subplots(plant1.n_x, 1)
+    tf = 1.0
+    # fig, axs = plt.subplots(plant1.n_x, 1)
+    fig, axs = plt.subplots(1, 1)
+
+    def test_model(dm, x_0, driving_fun, tf, ls, color, label, tru):
+        t, _, x, y = dm.simulate_system(x_0, driving_fun, tf)
+
+        err_sig = abs_error(y[:,:plant1.n_x], tru)
+        axs.plot(t, err_sig, linestyle=ls, color=color, linewidth=lw, label=label)
+        print('{} Error: {}'.format(label, int_abs_error(y[:,:plant1.n_x],tru[:,:plant1.n_x])))
+
+        # for i in range(plant1.n_x): axs[i].plot(t, y[:,i], linestyle=ls, color=color, label=label)
+        # print('{} Error: {}'.format(label, int_abs_error(x[:,:plant1.n_x],tru)))
 
     t, u, x_tru, y_tru = tru.simulate_system(x_0, driving_fun, tf)
-    for i in range(plant1.n_x):
-        axs[i].plot(t, u, 'gainsboro')
-        axs[i].text(1.7, -0.43, 'u', fontsize='xx-large', color='tab:gray', fontstyle='italic')
-        axs[i].plot(t, x_tru[:,i], 'k-', label='Gnd. Truth')
+    # for i in range(plant1.n_x):
+    #     axs[i].plot(t, u, 'gainsboro')
+    #     axs[i].text(1.7, -0.43, 'u', fontsize='xx-large', color='tab:gray', fontstyle='italic')
+    #     axs[i].plot(t, x_tru[:,i], 'k-', label='Gnd. Truth')
 
-    _, _, x_koo, y_koo = koo.simulate_system(x_0, driving_fun, tf)
-    for i in range(plant1.n_x): axs[i].plot(t, y_koo[:,i], linestyle='-.', color='g', label='KIC')
-    print('KIC Error: {}'.format(int_abs_error(x_koo[:,:2],x_tru)))
-
-    _, _, x_edc, y_edc = edc.simulate_system(x_0, driving_fun, tf)
-    for i in range(plant1.n_x): axs[i].plot(t, y_edc[:,i], linestyle='-.', color='c', label='eDMDc')
-    print('eDMDc Error: {}'.format(int_abs_error(x_edc[:,:2],x_tru)))
-
-    _, _, x_dfl, y_dfl = adf.simulate_system(x_0, driving_fun, tf)
-    for i in range(plant1.n_x): axs[i].plot(t, x_dfl[:,i], 'r-.', label='DFL')
-    print('DFL Error: {}'.format(int_abs_error(x_dfl[:,:2],x_tru)))
-
-    _, _, x_lrn, y_lrn = lrn.simulate_system(x_0, driving_fun, tf)
-    for i in range(plant1.n_x): axs[i].plot(t, x_lrn[:,i], 'b-.', label='L3')
-    print('L3 Error: {}'.format(int_abs_error(x_lrn[:,:2],x_tru)))
-
-    _, _, x_adc, y_adc = adc.simulate_system(x_0m, driving_fun, tf)
-    for i in range(plant1.n_x): axs[i].plot(t, x_adc[:,i], linestyle='-.', color='chocolate', label='AL2')
-    print('AL2 Error: {}'.format(int_abs_error(x_adc[:,:2],x_tru)))
-
-    _, _, x_idc, y_idc = idc.simulate_system(x_0i, driving_fun, tf)
-    for i in range(plant1.n_x): axs[i].plot(t, y_idc[:,i], linestyle='-.', color='darkmagenta', label='IL2')
-    print('IL2 Error: {}'.format(int_abs_error(x_idc[:,:2],x_tru)))
+    test_model(koo,x_0,driving_fun,tf,'-.','g','KIC',x_tru)
+    test_model(edc,x_0,driving_fun,tf,'-.','c','eDMDc',x_tru)
+    test_model(adf,x_0,driving_fun,tf,'-.','r','DFL',x_tru)
+    test_model(lrn,x_0,driving_fun,tf,'-.','b','L3',x_tru)
+    test_model(adc,x_0,driving_fun,tf,'-.','chocolate','AL2',x_tru)
+    test_model(idc,x_0,driving_fun,tf,'-.','darkmagenta','IL2',x_tru)
 
     # bb = (fig.subplotpars.left, fig.subplotpars.top+0.02, fig.subplotpars.right-fig.subplotpars.left, .1)
     # axs.legend(bbox_to_anchor=bb, loc='lower left', ncol=3, mode="expand", borderaxespad=0., bbox_transform=fig.transFigure)
 
     # axs[0].legend(ncol=3, loc='upper center')
-    # axs.set_xlabel('time (s)')
-    # axs.set_ylabel('Error')
-    # axs.set_yscale('log')
+    axs.set_xlabel('time (s)')
+    axs.set_ylabel('Error')
+    axs.set_yscale('log')
+    axs.set_xlim(0,1)
 
     # axs.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc='lower left', ncol=3, mode="expand", borderaxespad=0.)
-    axs[0].legend(ncol=3, loc='lower right')
+    axs.legend(ncol=3, loc='lower right')
     
     # axs.set_ylim(-1,1)
     
