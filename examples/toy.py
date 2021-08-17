@@ -175,9 +175,9 @@ if __name__== "__main__":
     # Training
     tru = dm.GroundTruth(plant1)
     data = tru.generate_data_from_random_trajectories()
-    koo = dm.Koopman(plant1, observable='polynomial', n_koop=4)
+    koo = dm.Koopman(plant1, observable='polynomial', n_koop=8)
     koo.learn(data, dmd=False)
-    edc = dm.Koopman(plant1, observable='polynomial', n_koop=4)
+    edc = dm.Koopman(plant1, observable='polynomial', n_koop=8)
     edc.learn(data, dmd=True)  
     adf = dm.DFL(plant1, ac_filter=True)
     adf.learn(data)
@@ -217,11 +217,11 @@ if __name__== "__main__":
     #     axs[i].text(1.7, -0.43, 'u', fontsize='xx-large', color='tab:gray', fontstyle='italic')
     #     axs[i].plot(t, x_tru[:,i], 'k-', label='Gnd. Truth')
 
-    test_model(koo,x_0,driving_fun,tf,'-.','g','KIC',x_tru)
-    test_model(edc,x_0,driving_fun,tf,'-.','c','eDMDc',x_tru)
+    test_model(koo,x_0,driving_fun,tf,'--','g','KIC',x_tru)
+    test_model(edc,x_0,driving_fun,tf,':','c','eDMDc',x_tru)
     test_model(adf,x_0,driving_fun,tf,'-.','r','DFL',x_tru)
-    test_model(lrn,x_0,driving_fun,tf,'-.','b','L3',x_tru)
-    test_model(adc,x_0,driving_fun,tf,'-.','chocolate','AL2',x_tru)
+    test_model(lrn,x_0,driving_fun,tf,'--','b','L3',x_tru)
+    test_model(adc,x_0,driving_fun,tf,':','chocolate','AL2',x_tru)
     test_model(idc,x_0,driving_fun,tf,'-.','darkmagenta','IL2',x_tru)
 
     # bb = (fig.subplotpars.left, fig.subplotpars.top+0.02, fig.subplotpars.right-fig.subplotpars.left, .1)
