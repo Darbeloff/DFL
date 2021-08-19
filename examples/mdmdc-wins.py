@@ -138,7 +138,7 @@ def cdf(data, bins=50):
     count, bins_count = np.histogram(data, bins=bins)
     pdf = count / sum(count)
     cdf = np.cumsum(pdf)
-    return bins_count[1:], cdf
+    return bins_count[1:], cdf, pdf
 
 if __name__== "__main__":
     # Setup
@@ -149,7 +149,7 @@ if __name__== "__main__":
     x_0 = np.zeros(plant1.n_x)
     x_0i = np.zeros(planti.n_x)
     x_0m = np.zeros(plantm.n_x)
-    fig, axs = plt.subplots(1, 1)
+    fig, axs = plt.subplots(1, 2)
 
     # Training
     tru = dm.GroundTruth(plant1)
@@ -157,12 +157,12 @@ if __name__== "__main__":
 
     trui = dm.GroundTruth(planti)
     datai = trui.generate_data_from_random_trajectories()
-    idmdc = dm.Koopman(planti, observable='polynomial')
+    idmdc = dm.Koopman(planti, observable='polynomial', n_koop=planti.n_x+planti.n_eta)
     idmdc.learn(datai)
 
     trum = dm.GroundTruth(plantm)
     datam = trum.generate_data_from_random_trajectories()
-    mdmdc = dm.Koopman(plantm, observable='polynomial')
+    mdmdc = dm.Koopman(plantm, observable='polynomial', n_koop=plantm.n_x+plantm.n_eta)
     mdmdc.learn(datam)
 
     # Testing
@@ -187,15 +187,18 @@ if __name__== "__main__":
     print('median', np.median(err_arr, axis=1))
     print('90th p', np.percentile(err_arr, 90, axis=1))
 
-    xa, cdfa = cdf(err_arr[0,:])
-    xi, cdfi = cdf(err_arr[1,:])
-    axs.semilogx(xa, cdfa, color='chocolate', label='AL2')
-    axs.semilogx(xi, cdfi, color='darkmagenta', label='IL2')
+    xa, cdfa, pdfa = cdf(err_arr[0,:])
+    xi, cdfi, pdfi = cdf(err_arr[1,:])
+    axs[0].semilogx(xa, cdfa, color='chocolate', label='AL2')
+    axs[0].semilogx(xi, cdfi, color='darkmagenta', label='IL2')
+    axs[1].semilogx(xa, pdfa, color='chocolate', label='AL2')
+    axs[1].semilogx(xi, pdfi, color='darkmagenta', label='IL2')
 
     # axs.legend(ncol=2, loc='upper center')
-    axs.legend()
-    axs.set_xlabel('SSE')
-    axs.set_ylabel('CDF')
-    # axs.set_ylim(-0.6, 1.2)
+    axs[0].legend()
+    axs[0].set_xlabel('SSE')
+    axs[0].set_ylabel('CDF')
+    axs[1].set_xlabel('SSE')
+    axs[1].set_ylabel('PDF')
     
     plt.show()
