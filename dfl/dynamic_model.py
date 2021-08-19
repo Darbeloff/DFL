@@ -3,6 +3,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 import numpy as np
+import numpy.random
 import itertools, copy, torch, scipy
 from scipy import integrate, signal
 from enum import Enum
@@ -24,6 +25,8 @@ np.random.seed(seed = seed)
 
 DT_DATA_DEFAULT = 0.05
 DT_CTRL_DEFAULT = 0.1
+
+SCALE = 0.01
 
 class DynamicModel(ABC):
     def __init__(self, dynamic_plant: dfl.dynamic_system.DFLDynamicPlant, dt_data: float=DT_DATA_DEFAULT, dt_control: float=DT_CTRL_DEFAULT, name: str=''):
@@ -80,6 +83,8 @@ class DynamicModel(ABC):
             else:
                 x_t = f_func(t, x_t, u_t)
 
+            # NICK HACK XXX
+            x_t+= np.random.normal(scale=SCALE,size=np.shape(x_t))
             t = t + self.dt_data
             y_t = g_func(t, x_t, u_t)
             

@@ -5,14 +5,16 @@ import dfl.dynamic_system
 import dfl.dynamic_model as dm
 
 import numpy as np
+import numpy.random
 import matplotlib.pyplot as plt
-from scipy import signal
 
 plt.rcParams["font.family"] = "Times New Roman"
 plt.rcParams["font.size"] = 36
 plt.rcParams['pdf.fonttype'] = 42
 plt.rcParams['ps.fonttype'] = 42
 lw = 5
+
+scale = 0.1
 
 class Plant1(dfl.dynamic_system.DFLDynamicPlant):
     def __init__(self):
@@ -181,7 +183,7 @@ if __name__== "__main__":
     edc.learn(data, dmd=True)  
     adf = dm.DFL(plant1, ac_filter=True)
     adf.learn(data)
-    lrn = dm.L3(plant1, 4, ac_filter='linear', model_fn='model_toy', retrain=False, hidden_units_per_layer=256, num_hidden_layers=2)
+    lrn = dm.L3(plant1, 4, ac_filter='linear', model_fn='model_toy_noisy', retrain=True, hidden_units_per_layer=256, num_hidden_layers=2)
     lrn.learn(data)
     lrn.regress_new_LDM(data)
 
