@@ -14,8 +14,6 @@ plt.rcParams['pdf.fonttype'] = 42
 plt.rcParams['ps.fonttype'] = 42
 lw = 5
 
-scale = 0.1
-
 class Plant1(dfl.dynamic_system.DFLDynamicPlant):
     def __init__(self):
         self.n_x = 2
@@ -41,8 +39,8 @@ class Plant1(dfl.dynamic_system.DFLDynamicPlant):
 
     @staticmethod
     def phi_r(er):
-        return np.sign(er)*er**4
-        # return (1/(1+np.exp(-4*er))-0.5)
+        # return np.sign(er)*er**4
+        return (1/(1+np.exp(-4*er))-0.5)
         # return er*(er+1)*(er-1)
         # return Plant1.phi_c(er)+Plant1.phi_i(er)
 
@@ -183,7 +181,7 @@ if __name__== "__main__":
     edc.learn(data, dmd=True)  
     adf = dm.DFL(plant1, ac_filter=True)
     adf.learn(data)
-    lrn = dm.L3(plant1, 4, ac_filter='linear', model_fn='model_toy_noisy', retrain=True, hidden_units_per_layer=256, num_hidden_layers=2)
+    lrn = dm.L3(plant1, 4, ac_filter='linear', model_fn='model_toy_noisy', retrain=False, hidden_units_per_layer=256, num_hidden_layers=2)
     lrn.learn(data)
     lrn.regress_new_LDM(data)
 

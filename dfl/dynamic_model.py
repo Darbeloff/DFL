@@ -26,7 +26,7 @@ np.random.seed(seed = seed)
 DT_DATA_DEFAULT = 0.05
 DT_CTRL_DEFAULT = 0.1
 
-SCALE = 0.01
+SCALE = 0.03
 
 class DynamicModel(ABC):
     def __init__(self, dynamic_plant: dfl.dynamic_system.DFLDynamicPlant, dt_data: float=DT_DATA_DEFAULT, dt_control: float=DT_CTRL_DEFAULT, name: str=''):
